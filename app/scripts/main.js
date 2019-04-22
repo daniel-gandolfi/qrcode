@@ -221,7 +221,11 @@
           
           var isSetup = setupVariables(e);
           if(isSetup) {
-            setInterval(captureFrame.bind(self), 4);
+            var captureFrameWrapper = function(){
+              captureFrame.call(self, 4)
+              requestAnimationFrame(captureFrameWrapper);
+            }
+            requestAnimationFrame(captureFrameWrapper);
           }
           else {
             // This is just to get around the fact that the videoWidth is not
@@ -229,7 +233,11 @@
             setTimeout(function() {
               setupVariables(e);
 
-              setInterval(captureFrame.bind(self), 4);
+              var captureFrameWrapper = function(){
+                captureFrame.call(self, 4)
+                requestAnimationFrame(captureFrameWrapper);
+              }
+              requestAnimationFrame(captureFrameWrapper);
             }, 100);
           }
 
@@ -243,8 +251,11 @@
 
           cb(videoSource);
         };
-
-        cameraVideo.src = window.URL.createObjectURL(localStream);
+        if ('srcObject' in cameraVideo) {
+          cameraVideo.srcObject = localStream;
+        } else {
+          cameraVideo.src = window.URL.createObjectURL(localStream);
+        }
         cameraVideo.load();
         cameraVideo.play();
       }, function(error) {});
@@ -311,7 +322,9 @@
       if(document.visibilityState === 'hidden') {
         // Disconnect the camera.
         if(localStream !== undefined) {
-          localStream.stop();
+          for (var track of localStream.getTracks()){
+            track.stop();
+          }
           localStream = undefined;
         }
       }
