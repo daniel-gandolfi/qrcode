@@ -30,7 +30,7 @@
       // There is a frame in the camera, what should we do with it?
  
       var imageData = cameraManager.getImageData();
-      var detectedQRCode = qrCodeManager.detectQRCode(imageData, function(url) {
+      qrCodeManager.detectQRCode(imageData, function(url) {
         if(url !== undefined) {
           qrCodeManager.showDialog(url);
         }
@@ -47,6 +47,7 @@
     var qrcodeIgnore = root.querySelector(".QRCodeSuccessDialog-ignore");
 
     var client = new QRClient();
+    var qrDecoderWorker = new Worker("scripts/jsqrcode/qrworker.js");
 
     var self = this;
 
@@ -54,14 +55,16 @@
 
 
     this.detectQRCode = function(imageData, callback) {
-      callback = callback || function() {};
-
-      client.decode(imageData, function(result) {
-        if(result !== undefined) {
-          self.currentUrl = result;
+      qrDecoderWorker.postMessage(imageData);
+      qrDecoderWorker.onmessage = function(message){
+        if (message && message.data) {
+          var result = message.data;
+          if(result !== undefined) {
+            self.currentUrl = result;
+          }
+          callback && callback(result);
         }
-        callback(result);
-      });
+      };
     };
 
     this.showDialog = function(url) {
